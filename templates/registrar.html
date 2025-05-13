@@ -1,0 +1,17 @@
+{% extends 'layout.html' %}
+{% block title %}Registrar Historia{% endblock %}
+{% block content %}
+<h2>Registrar Historia Clínica</h2>
+<form action="/guardar" method="post">
+    <label for="nombre">Nombre del paciente:</label>
+    <input type="text" id="nombre" name="nombre" required>
+
+    <label for="dni">DNI:</label>
+    <input type="text" id="dni" name="dni" required>
+
+    <label for="contenido">Contenido de la historia clínica:</label>
+    <textarea id="contenido" name="contenido" rows="10" required></textarea>
+
+    <input type="submit" value="Guardar">
+</form>
+{% endblock %}

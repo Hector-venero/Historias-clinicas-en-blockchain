@@ -1,0 +1,28 @@
+<!-- templates/index.html (modificado para ser una página de inicio informativa) -->
+{% extends "layout.html" %}
+{% block title %}Inicio - Historia Clínica{% endblock %}
+
+{% block content %}
+    <img src="{{ url_for('static', filename='img/logo-unsam.png') }}" alt="Logo UNSAM" style="width: 160px; float: right;">
+    <h2>Bienvenido al Sistema de Historia Clínica del CAU - UNSAM</h2>
+    <p>
+        Esta aplicación está diseñada para uso interno de profesionales de la salud del Centro de Asistencia Universitaria (CAU)
+        de la Universidad Nacional de San Martín.
+    </p>
+    <p>
+        El sistema permite registrar y consultar historias clínicas de pacientes de forma segura, 
+        utilizando técnicas de integridad basadas en blockchain. Los datos personales se almacenan en una base de datos privada, 
+        mientras que los identificadores de integridad (hashes) se vinculan con una red blockchain de capa 2.
+    </p>
+
+    <h3>¿Cómo utilizar la plataforma?</h3>
+    <ul>
+        <li><strong>Registrar:</strong> Permite ingresar una nueva historia clínica con datos del paciente.</li>
+        <li><strong>Buscar:</strong> Puede buscarse por nombre o DNI y validar la integridad de historias pasadas.</li>
+    </ul>
+    <p>
+        Use las opciones en la barra superior para navegar. Esta plataforma está en fase de pruebas controladas.
+    </p>
+    <img src="{{ url_for('static', filename='img/cau-foto1.png') }}" alt="Imagen CAU" style="width: 100%; margin-top: 2rem; border-radius: 8px;">
+{% endblock %}
+

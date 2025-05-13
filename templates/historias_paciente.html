@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}Historias de {{ paciente.nombre }}{% endblock %}
+
+{% block content %}
+    <h2>Historias clínicas de {{ paciente.nombre }} (DNI: {{ paciente.dni }})</h2>
+
+    {% if historias %}
+        <form method="get" style="margin-bottom: 1.5rem;">
+            <label for="desde">Desde:</label>
+            <input type="date" name="desde" id="desde" value="{{ desde }}">
+        
+            <label for="hasta">Hasta:</label>
+            <input type="date" name="hasta" id="hasta" value="{{ hasta }}">
+        
+            <input type="submit" value="Filtrar">
+        </form>
+        <table style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">Fecha</th>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">Contenido</th>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">Integridad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in historias %}
+                <tr>
+                    <td>{{ h.fecha }}</td>
+                    <td>{{ h.contenido }}</td>
+                    <td>
+                        {% if h.valida %}
+                            ✅ Válida
+                        {% else %}
+                            ❌ Alterada
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No se encontraron historias para este paciente.</p>
+    {% endif %}
+
+    <p><a href="{{ url_for('buscar_form') }}">← Volver a búsqueda</a></p>
+{% endblock %}

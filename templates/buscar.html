@@ -1,0 +1,10 @@
+{% extends 'layout.html' %}
+{% block title %}Buscar Historia{% endblock %}
+{% block content %}
+<h2>Buscar historia clínica</h2>
+<form action="/resultados" method="get">
+    <label for="filtro">Buscar por DNI o Nombre:</label>
+    <input type="text" id="filtro" name="filtro" required>
+    <input type="submit" value="Buscar">
+</form>
+{% endblock %}

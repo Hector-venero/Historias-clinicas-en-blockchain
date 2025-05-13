@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}Resultados de Búsqueda{% endblock %}
+
+{% block content %}
+    <h2>Resultados para "{{ filtro }}"</h2>
+
+    {% if resultados %}
+        <table style="width:100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">Fecha</th>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">Paciente</th>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">DNI</th>
+                    <th style="text-align:left; border-bottom: 1px solid #ccc;">Opciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in resultados %}
+                <tr>
+                    <td>{{ h.fecha }}</td>
+                    <td>{{ h.nombre }}</td>
+                    <td>{{ h.dni }}</td>
+                    <td>
+                        <a href="{{ url_for('mostrar_historia', id=h.id) }}">Ver historia</a> |
+                        <a href="{{ url_for('historias_paciente', dni=h.dni) }}">Ver todas</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No se encontraron resultados.</p>
+    {% endif %}
+    <div style="margin-top: 1.5rem;">
+        <a href="javascript:history.back()">← Volver atrás</a> |
+        <a href="{{ url_for('index') }}">Volver al inicio</a>
+    </div>
+{% endblock %}
+

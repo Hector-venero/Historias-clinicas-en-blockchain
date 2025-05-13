@@ -1,0 +1,13 @@
+{% extends 'layout.html' %}
+{% block title %}Historias de {{ paciente.nombre }}{% endblock %}
+{% block content %}
+<h2>Historias clínicas de {{ paciente.nombre }} (DNI: {{ paciente.dni }})</h2>
+<ul>
+    {% for h in historias %}
+    <li>
+        {{ h.fecha }} - <a href="{{ url_for('mostrar_historia', id=h.id) }}">Ver historia</a>
+    </li>
+    {% endfor %}
+</ul>
+<a href="{{ url_for('buscar_form') }}">Volver a búsqueda</a>
+{% endblock %}
