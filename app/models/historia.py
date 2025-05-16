@@ -1,7 +1,7 @@
 # models/historia.py
 
 from datetime import datetime
-from utils.hashing import generar_hash
+from ..utils.hashing import generar_hash
 
 class HistoriaClinica:
     def __init__(self, paciente_id, contenido):

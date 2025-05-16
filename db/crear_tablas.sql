@@ -18,3 +18,4 @@ CREATE TABLE IF NOT EXISTS historias (
     hash CHAR(64) NOT NULL,
     FOREIGN KEY (paciente_id) REFERENCES pacientes(id)
 );
+

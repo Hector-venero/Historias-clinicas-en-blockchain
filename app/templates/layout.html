@@ -115,8 +115,19 @@
         </nav>
     </header>
     <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div style="margin: 1em 0;">
+              {% for category, message in messages %}
+                <p style="color: {{ 'green' if category == 'success' else 'orange' }};">{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+    
         {% block content %}{% endblock %}
     </main>
+    
     <footer>
         Proyecto Final Integrador - UNSAM 2025
     </footer>

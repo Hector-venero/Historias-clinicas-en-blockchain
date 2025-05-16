@@ -18,10 +18,19 @@
             <span style="color: red;">❌ Alterada</span>
         {% endif %}
     </p>
+
+    {% if historia.tx_hash %}
+        <p><strong>🌐 Transacción en BFA:</strong><br>
+        <a href="https://blockexplorer.bfa.ar/tx/{{ historia.tx_hash }}" target="_blank" style="color: #0056b3;">
+            {{ historia.tx_hash }}
+        </a></p>
+    {% else %}
+        <p><strong>🌐 Transacción en BFA:</strong> No registrada.</p>
+    {% endif %}
+
     <p>
         <a href="{{ url_for('resultados', filtro=paciente.dni) }}">← Volver a resultados</a>
     </p>
-
     <a href="{{ url_for('index') }}">← Volver al inicio</a>
 </div>
 <p>

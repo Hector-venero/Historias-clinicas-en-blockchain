@@ -1,7 +1,8 @@
-# Entornos virtuales
+# Entornos virtuales y caché de Python
 venv/
 __pycache__/
 *.pyc
+*.pyo
 
 # Archivos temporales
 *.log
@@ -9,5 +10,44 @@ __pycache__/
 *.swp
 .DS_Store
 
-# Archivos y carpetas de configuración del sistema
+# Archivos de entorno y configuración sensible
 .env
+*.env
+.env.*
+
+# Docker
+*.pid
+*.sock
+*.tar
+docker-compose.override.yml
+**/db_data/
+**/mysql-data/
+**/pgdata/
+**/.mysql/
+
+# SQLite (por si se usa localmente en pruebas)
+*.sqlite3
+
+# Flask / Werkzeug
+instance/
+*.db
+
+# Claves privadas o credenciales sensibles
+app/privada_bfa.py
+
+# Archivos de caché de editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de salida
+*.out
+
+# Archivos de migración (en caso de usar flask-migrate más adelante)
+migrations/
+
+# Imágenes o archivos binarios generados automáticamente
+*.gif
+bfa-node/container/.git
+bfa-node/nucleo/.git

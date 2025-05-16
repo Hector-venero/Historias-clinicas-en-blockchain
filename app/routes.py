@@ -1,35 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, flash, send_file
 from datetime import datetime
-from database import get_connection
-from utils.hashing import generar_hash
-from utils.utils import validar_integridad
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from auth import Usuario
-from flask import request
-from datetime import datetime
+from . import app
+from .database import get_connection
+from .auth import Usuario
+from .utils.hashing import generar_hash
+from .utils.utils import validar_integridad
+from .utils.blockchain import publicar_hash_en_bfa
+from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash
-from flask import send_file
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-app = Flask(__name__)
-app.secret_key = '2908'
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-@login_manager.user_loader
-def load_user(user_id):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
-    data = cursor.fetchone()
-    conn.close()
-    if data:
-        return Usuario(data['id'], data['nombre'], data['username'], data['password_hash'])
-    return None
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -143,8 +125,8 @@ def ver_paciente(paciente_id):
 
     return render_template('paciente.html', paciente=paciente, historias=historias)
 
-
 @app.route('/guardar', methods=['POST'])
+@login_required
 def guardar():
     nombre = request.form['nombre']
     dni = request.form['dni']
@@ -155,7 +137,7 @@ def guardar():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Insertar paciente si no existe
+    # Verificar si el paciente ya existe
     cursor.execute("SELECT id FROM pacientes WHERE dni = %s", (dni,))
     paciente = cursor.fetchone()
     if paciente:
@@ -164,11 +146,20 @@ def guardar():
         cursor.execute("INSERT INTO pacientes (nombre, dni) VALUES (%s, %s)", (nombre, dni))
         paciente_id = cursor.lastrowid
 
-    # Insertar historia clínica
+    # Publicar en la blockchain
+    try:
+        tx_hash = publicar_hash_en_bfa(hash_contenido)
+        flash("✅ Historia registrada y hash publicado en la blockchain.", "success")
+    except Exception as e:
+        tx_hash = None
+        flash("⚠️ Historia registrada pero hubo un error al publicar en la blockchain.", "warning")
+        print("❌ Error al publicar hash en BFA:", str(e))
+
+    # Insertar en base de datos
     cursor.execute("""
-        INSERT INTO historias (paciente_id, fecha, contenido, hash)
-        VALUES (%s, %s, %s, %s)
-    """, (paciente_id, fecha, contenido, hash_contenido))
+        INSERT INTO historias (paciente_id, fecha, contenido, hash, tx_hash)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (paciente_id, fecha, contenido, hash_contenido, tx_hash))
 
     conn.commit()
     cursor.close()
