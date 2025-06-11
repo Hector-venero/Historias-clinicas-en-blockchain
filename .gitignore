@@ -51,3 +51,6 @@ migrations/
 *.gif
 bfa-node/container/.git
 bfa-node/nucleo/.git
+# Ignorar datos de la red local
+bfa-node/nucleo/test2network/geth/
+bfa-node/nucleo/test2network/keystore/
