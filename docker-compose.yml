@@ -18,7 +18,7 @@ services:
       - DB_PASSWORD=root
       - DB_NAME=hc_bfa
       - PRIVATE_KEY_BFA=03ca4edb5fb0dff310f92f8421cfbb1f3b5b2bb54ac9b9e3314b133fb7daae2b
-      - ADDRESS_BFA=0x9597A10a33Cf9a30A46Eb01E63Ab1488B25505A3
+      - ADDRESS_BFA=0xa2f22ad8781170145406a8c3dc69701e1fe16f7d
     command: flask run
     networks:
       - historia_net

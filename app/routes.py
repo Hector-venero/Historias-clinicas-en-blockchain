@@ -128,6 +128,7 @@ def ver_paciente(paciente_id):
 @app.route('/guardar', methods=['POST'])
 @login_required
 def guardar():
+    print("📍 Entrando a guardar()")
     nombre = request.form['nombre']
     dni = request.form['dni']
     contenido = request.form['contenido']
@@ -149,7 +150,9 @@ def guardar():
     # Publicar en la blockchain
     try:
         tx_hash = publicar_hash_en_bfa(hash_contenido)
-        flash("✅ Historia registrada y hash publicado en la blockchain.", "success")
+        if not tx_hash:
+            raise ValueError("La transacción no devolvió un hash válido.")
+        flash("✅ Historia registrada y hash publicada en la blockchain.", "success")
     except Exception as e:
         tx_hash = None
         flash("⚠️ Historia registrada pero hubo un error al publicar en la blockchain.", "warning")

@@ -1,5 +1,6 @@
 Flask
 Flask-Login
 mysql-connector-python
-web3
 reportlab
+web3==6.15.0
+eth-tester
