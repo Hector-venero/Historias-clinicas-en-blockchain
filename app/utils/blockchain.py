@@ -12,7 +12,7 @@ def publicar_hash_en_bfa(hash_hex):
     if not web3.is_connected():
         raise ConnectionError("❌ No se pudo conectar al nodo BFA")
 
-    cuenta = ADDRESS_BFA
+    cuenta = Web3.to_checksum_address(ADDRESS_BFA)
     print(f"📍 Usando cuenta: {cuenta}")
 
     balance = web3.eth.get_balance(cuenta)
@@ -35,7 +35,7 @@ def publicar_hash_en_bfa(hash_hex):
         'data': web3.to_bytes(hexstr=hash_hex),
         'gasPrice': gas_price,
         'chainId': 99118822,
-        'from': cuenta  # 👈 Agregar esto para evitar el error
+        'from': cuenta  
     }
 
     try:

@@ -10,6 +10,7 @@ services:
       - ./app:/app
     depends_on:
       - db
+      - bfa-node  # 👈 importante
     environment:
       - FLASK_ENV=development
       - FLASK_APP=main.py
@@ -34,6 +35,18 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3307:3306"
+    networks:
+      - historia_net
+
+  bfa-node:
+    image: ubuntu:20.04
+    container_name: bfa-node
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./bfa-node/nucleo:/nucleo
+      - ./bfa-node/container/setup_bfa_node.sh:/setup_bfa_node.sh
+    command: bash /setup_bfa_node.sh
     networks:
       - historia_net
 
