@@ -57,8 +57,8 @@ def resultados():
     SELECT h.id, h.fecha, h.hash, p.id as paciente_id, p.nombre, p.dni
     FROM historias h
     JOIN pacientes p ON h.paciente_id = p.id
-    WHERE p.dni = %s OR p.nombre LIKE %s
-    """, (filtro, f"%{filtro}%"))
+    WHERE p.dni = %s OR UPPER(p.nombre) LIKE UPPER(%s) OR UPPER(p.apellido) LIKE UPPER(%s)
+    """, (filtro, f"%{filtro}%", f"%{filtro}%"))
 
     resultados = cursor.fetchall()
     conn.close()
@@ -129,25 +129,39 @@ def ver_paciente(paciente_id):
 @login_required
 def guardar():
     print("📍 Entrando a guardar()")
-    nombre = request.form['nombre']
     dni = request.form['dni']
-    contenido = request.form['contenido']
+    apellido = request.form['apellido'].upper()
+    nombre = request.form['nombre'].upper()
+    fecha_nacimiento = request.form.get('fecha_nacimiento')
+    sexo = request.form.get('sexo')
+
+    motivo_consulta = request.form.get('motivo_consulta', '').strip()
+    antecedentes = request.form.get('antecedentes', '').strip()
+    examen_fisico = request.form.get('examen_fisico', '').strip()
+    diagnostico = request.form.get('diagnostico', '').strip()
+    tratamiento = request.form.get('tratamiento', '').strip()
+    observaciones = request.form.get('observaciones', '').strip()
     fecha = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    hash_contenido = generar_hash(contenido)
+
+    hash_contenido = generar_hash(
+        motivo_consulta + antecedentes + examen_fisico + diagnostico + tratamiento + observaciones
+    )
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Verificar si el paciente ya existe
     cursor.execute("SELECT id FROM pacientes WHERE dni = %s", (dni,))
     paciente = cursor.fetchone()
+
     if paciente:
         paciente_id = paciente[0]
     else:
-        cursor.execute("INSERT INTO pacientes (nombre, dni) VALUES (%s, %s)", (nombre, dni))
+        cursor.execute("""
+            INSERT INTO pacientes (dni, apellido, nombre, fecha_nacimiento, sexo)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (dni, apellido, nombre, fecha_nacimiento, sexo))
         paciente_id = cursor.lastrowid
 
-    # Publicar en la blockchain
     try:
         tx_hash = publicar_hash_en_bfa(hash_contenido)
         if not tx_hash:
@@ -158,11 +172,10 @@ def guardar():
         flash("⚠️ Historia registrada pero hubo un error al publicar en la blockchain.", "warning")
         print("❌ Error al publicar hash en BFA:", str(e))
 
-    # Insertar en base de datos
     cursor.execute("""
-        INSERT INTO historias (paciente_id, fecha, contenido, hash, tx_hash)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (paciente_id, fecha, contenido, hash_contenido, tx_hash))
+        INSERT INTO historias (paciente_id, usuario_id, fecha, motivo_consulta, antecedentes, examen_fisico, diagnostico, tratamiento, observaciones, hash, tx_hash)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (paciente_id, current_user.id, fecha, motivo_consulta, antecedentes, examen_fisico, diagnostico, tratamiento, observaciones, hash_contenido, tx_hash))
 
     conn.commit()
     cursor.close()
@@ -186,9 +199,13 @@ def mostrar_historia(id):
 
     conn.close()
 
-    es_valida = validar_integridad(historia['contenido'], historia['hash'])
+    historia['valida'] = validar_integridad(
+        f"{historia['motivo_consulta']}{historia['antecedentes']}{historia['examen_fisico']}{historia['diagnostico']}{historia['tratamiento']}{historia['observaciones']}",
+        historia['hash']
+    )
 
-    return render_template("historia.html", historia=historia, paciente=paciente, es_valida=es_valida)
+    return render_template("historia.html", historia=historia, paciente=paciente, es_valida=historia['valida'])
+
 
 @app.route('/historias/<dni>')
 @login_required
@@ -222,9 +239,11 @@ def historias_paciente(dni):
     conn.close()
 
     for h in historias:
-        h['valida'] = validar_integridad(h['contenido'], h['hash'])
+        contenido_concat = f"{h['motivo_consulta']}{h['antecedentes']}{h['examen_fisico']}{h['diagnostico']}{h['tratamiento']}{h['observaciones']}"
+        h['valida'] = validar_integridad(contenido_concat, h['hash'])
 
     return render_template("historias_paciente.html", paciente=paciente, historias=historias, desde=desde, hasta=hasta)
+
 
 @app.route('/exportar_pdf/<int:id>')
 @login_required
@@ -245,25 +264,40 @@ def exportar_pdf(id):
 
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
-
     p.setFont("Helvetica-Bold", 14)
-    p.drawString(50, 750, f"Historia Clínica de {paciente['nombre']} (DNI: {paciente['dni']})")
+    p.drawString(50, 750, f"Historia Clínica de {paciente['apellido']}, {paciente['nombre']} (DNI: {paciente['dni']})")
 
     p.setFont("Helvetica", 12)
-    p.drawString(50, 720, f"Fecha: {historia['fecha']}")
-    p.drawString(50, 700, "Contenido:")
-    text_object = p.beginText(50, 680)
-    text_object.setFont("Helvetica", 11)
-    for line in historia['contenido'].splitlines():
-        text_object.textLine(line)
-    p.drawText(text_object)
+    y = 720
+    p.drawString(50, y, f"Fecha: {historia['fecha']}")
+    y -= 20
 
-    p.drawString(50, 620 - (15 * len(historia['contenido'].splitlines())), f"Hash: {historia['hash']}")
+    campos = [
+        ("Motivo de Consulta", historia['motivo_consulta']),
+        ("Antecedentes", historia['antecedentes']),
+        ("Examen Físico", historia['examen_fisico']),
+        ("Diagnóstico", historia['diagnostico']),
+        ("Tratamiento", historia['tratamiento']),
+        ("Observaciones", historia['observaciones'])
+    ]
+
+    for titulo, contenido in campos:
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y, titulo + ":")
+        y -= 15
+        p.setFont("Helvetica", 11)
+        for linea in contenido.splitlines():
+            p.drawString(60, y, linea[:100])  # limitar línea larga
+            y -= 15
+        y -= 10
+
+    p.drawString(50, y, f"Hash: {historia['hash']}")
     p.showPage()
     p.save()
 
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='historia_clinica.pdf', mimetype='application/pdf')
 
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)  # Podés cambiar a 5050 si querés evitar conflictos
+    app.run(debug=True, port=5000)

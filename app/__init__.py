@@ -1,12 +1,14 @@
 # app/__init__.py
 
 from flask import Flask
+import json
 from flask_login import LoginManager
 from .auth import Usuario
 from .database import get_connection
 
 app = Flask(__name__)
 app.secret_key = '2908'
+app.jinja_env.filters['from_json'] = json.loads
 
 login_manager = LoginManager()
 login_manager.init_app(app)

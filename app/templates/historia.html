@@ -1,17 +1,35 @@
 {% extends 'layout.html' %}
 {% block title %}Detalle de Historia Clínica{% endblock %}
 {% block content %}
+
 <div style="border: 1px solid #ccc; border-radius: 8px; padding: 2rem; background-color: #fefefe; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
-    <h2 style="color: #002855;">Historia clínica de {{ paciente.nombre }} (DNI: {{ paciente.dni }})</h2>
+    <h2 style="color: #002855;">Historia clínica de {{ paciente.apellido.upper() }} {{ paciente.nombre.upper() }} (DNI: {{ paciente.dni }})</h2>
 
     <p><strong>📅 Fecha:</strong> {{ historia.fecha }}</p>
-    <p><strong>📋 Contenido:</strong><br>
-    <span style="display: inline-block; margin-top: 0.5rem; background-color: #f4f4f4; padding: 1rem; border-radius: 6px; white-space: pre-wrap;">{{ historia.contenido }}</span></p>
 
-    <p><strong>🔐 Hash:</strong><br>
-    <code style="background-color: #e9ecef; padding: 0.5rem; display: block; border-radius: 4px; font-size: 0.9rem;">{{ historia.hash }}</code></p>
+    <h3>📝 Motivo de Consulta</h3>
+    <p>{{ historia.motivo_consulta or 'Sin registrar' }}</p>
 
-    <p><strong>🛡️ Integridad:</strong> 
+    <h3>📚 Antecedentes</h3>
+    <p>{{ historia.antecedentes or 'Sin registrar' }}</p>
+
+    <h3>🩺 Examen Físico</h3>
+    <p>{{ historia.examen_fisico or 'Sin registrar' }}</p>
+
+    <h3>📋 Diagnóstico</h3>
+    <p>{{ historia.diagnostico or 'Sin registrar' }}</p>
+
+    <h3>💊 Tratamiento / Indicaciones</h3>
+    <p>{{ historia.tratamiento or 'Sin registrar' }}</p>
+
+    <h3>🗒️ Observaciones Finales</h3>
+    <p>{{ historia.observaciones or 'Sin registrar' }}</p>
+
+    <h3>🔐 Hash:</h3>
+    <code style="background-color: #e9ecef; padding: 0.5rem; display: block; border-radius: 4px; font-size: 0.9rem;">{{ historia.hash }}</code>
+
+    <h3>🛡️ Integridad:</h3>
+    <p>
         {% if es_valida %}
             <span style="color: green;">✅ Válida</span>
         {% else %}
@@ -19,21 +37,22 @@
         {% endif %}
     </p>
 
+    <h3>🌐 Transacción en BFA:</h3>
     {% if historia.tx_hash %}
-        <p><strong>🌐 Transacción en BFA:</strong><br>
-        <a href="https://blockexplorer.bfa.ar/tx/{{ historia.tx_hash }}" target="_blank" style="color: #0056b3;">
-            {{ historia.tx_hash }}
-        </a></p>
+        <p>
+            <a href="https://blockexplorer.bfa.ar/tx/{{ historia.tx_hash }}" target="_blank" style="color: #0056b3;">
+                {{ historia.tx_hash }}
+            </a>
+        </p>
     {% else %}
-        <p><strong>🌐 Transacción en BFA:</strong> No registrada.</p>
+        <p>No registrada.</p>
     {% endif %}
 
     <p>
-        <a href="{{ url_for('resultados', filtro=paciente.dni) }}">← Volver a resultados</a>
+        <a href="{{ url_for('resultados', filtro=paciente.dni) }}">← Volver a resultados</a> |
+        <a href="{{ url_for('index') }}">Volver al inicio</a> |
+        <a href="{{ url_for('exportar_pdf', id=historia.id) }}">📄 Exportar a PDF</a>
     </p>
-    <a href="{{ url_for('index') }}">← Volver al inicio</a>
 </div>
-<p>
-    <a href="{{ url_for('exportar_pdf', id=historia.id) }}">📄 Exportar a PDF</a>
-</p>
+
 {% endblock %}

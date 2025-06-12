@@ -1,13 +1,36 @@
 {% extends 'layout.html' %}
-{% block title %}Historias de {{ paciente.nombre }}{% endblock %}
+{% block title %}Historias de {{ paciente.apellido }} {{ paciente.nombre }}{% endblock %}
 {% block content %}
-<h2>Historias clínicas de {{ paciente.nombre }} (DNI: {{ paciente.dni }})</h2>
+
+<h2>Historia Clínica de {{ paciente.apellido.upper() }} {{ paciente.nombre.upper() }}</h2>
 <ul>
-    {% for h in historias %}
-    <li>
-        {{ h.fecha }} - <a href="{{ url_for('mostrar_historia', id=h.id) }}">Ver historia</a>
-    </li>
-    {% endfor %}
+    <li><strong>DNI:</strong> {{ paciente.dni }}</li>
+    <li><strong>Fecha de Nacimiento:</strong> {{ paciente.fecha_nacimiento }}</li>
+    <li><strong>Sexo:</strong> {{ paciente.sexo }}</li>
 </ul>
-<a href="{{ url_for('buscar_form') }}">Volver a búsqueda</a>
+
+<h3>Registros de Historia Clínica</h3>
+{% if historias %}
+    <ul>
+    {% for h in historias %}
+        <li>
+            <strong>{{ h.fecha }}:</strong>
+            <a href="{{ url_for('mostrar_historia', id=h.id) }}">Ver Detalles</a>
+            {% if h.valida is defined %}
+                {% if h.valida %}
+                    ✅ Integridad válida
+                {% else %}
+                    ❌ Hash inválido
+                {% endif %}
+            {% endif %}
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No hay historias clínicas registradas para este paciente.</p>
+{% endif %}
+
+<br>
+<a href="{{ url_for('buscar_form') }}">← Volver a búsqueda</a>
+
 {% endblock %}

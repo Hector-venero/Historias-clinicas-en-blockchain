@@ -24,7 +24,7 @@ def publicar_hash_en_bfa(hash_hex):
     nonce = web3.eth.get_transaction_count(cuenta)
     print(f"🔢 Nonce: {nonce}")
 
-    gas_price = web3.to_wei(1, 'gwei')  # Gas price fijo para pruebas
+    gas_price = web3.to_wei(4, 'gwei')  # Gas price fijo para pruebas
     print(f"⛽ Enviando transacción legacy con gasPrice: {gas_price} wei")
 
     # Construcción inicial de la transacción sin el campo `gas`

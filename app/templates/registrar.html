@@ -1,17 +1,58 @@
 {% extends 'layout.html' %}
-{% block title %}Registrar Historia{% endblock %}
+{% block title %}Registrar Historia Clínica{% endblock %}
 {% block content %}
 <h2>Registrar Historia Clínica</h2>
+
 <form action="/guardar" method="post">
-    <label for="nombre">Nombre del paciente:</label>
-    <input type="text" id="nombre" name="nombre" required>
 
-    <label for="dni">DNI:</label>
-    <input type="text" id="dni" name="dni" required>
+    <!-- Datos del paciente -->
+    <fieldset>
+        <legend>Datos del Paciente</legend>
 
-    <label for="contenido">Contenido de la historia clínica:</label>
-    <textarea id="contenido" name="contenido" rows="10" required></textarea>
+        <label for="dni">DNI:</label>
+        <input type="text" id="dni" name="dni" required>
 
-    <input type="submit" value="Guardar">
+        <label for="apellido">Apellido:</label>
+        <input type="text" id="apellido" name="apellido" style="text-transform: uppercase;" required>
+
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" style="text-transform: uppercase;" required>        
+
+        <label for="fecha_nacimiento">Fecha de Nacimiento:</label>
+        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" required>
+
+        <label for="sexo">Sexo:</label>
+        <select id="sexo" name="sexo" required>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Otro">Otro</option>
+        </select>
+    </fieldset>
+
+    <!-- Historia Clínica -->
+    <fieldset>
+        <legend>Historia Clínica</legend>
+
+        <label for="motivo_consulta">Motivo de Consulta:</label>
+        <textarea id="motivo_consulta" name="motivo_consulta" rows="2"></textarea>
+
+        <label for="antecedentes">Antecedentes:</label>
+        <textarea id="antecedentes" name="antecedentes" rows="3"></textarea>
+
+        <label for="examen_fisico">Examen Físico:</label>
+        <textarea id="examen_fisico" name="examen_fisico" rows="3"></textarea>
+
+        <label for="diagnostico">Diagnóstico:</label>
+        <textarea id="diagnostico" name="diagnostico" rows="2"></textarea>
+
+        <label for="tratamiento">Tratamiento / Indicaciones:</label>
+        <textarea id="tratamiento" name="tratamiento" rows="3"></textarea>
+
+        <label for="observaciones">Observaciones finales:</label>
+        <textarea id="observaciones" name="observaciones" rows="2"></textarea>
+    </fieldset>
+
+    <input type="submit" value="Guardar Historia Clínica">
+
 </form>
 {% endblock %}
