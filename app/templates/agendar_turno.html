@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block title %}Agendar Turno{% endblock %}
+{% block content %}
+
+<h2>Agendar Turno</h2>
+
+{% if error %}
+  <div style="color: red;">{{ error }}</div>
+{% endif %}
+
+{% if confirmado %}
+  <div style="color: green;">✅ Turno agendado correctamente.</div>
+{% endif %}
+
+<form method="POST">
+  <label for="dni">DNI del paciente:</label>
+  <input type="text" name="dni" id="dni" value="{{ request.form.get('dni', '') }}" required>
+
+  {% if datos_paciente %}
+    <p><strong>Paciente:</strong> {{ datos_paciente.nombre }} {{ datos_paciente.apellido }} (DNI {{ datos_paciente.dni }})</p>
+
+    <label for="fecha">Fecha y hora del turno:</label>
+    <input type="datetime-local" name="fecha" id="fecha" required>
+
+    <label for="motivo">Motivo:</label>
+    <input type="text" name="motivo" id="motivo">
+
+    <button type="submit">Agendar</button>
+  {% else %}
+    <button type="submit">Buscar paciente</button>
+  {% endif %}
+</form>
+
+{% endblock %}

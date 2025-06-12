@@ -17,6 +17,7 @@ import secrets
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash
 from . import mail
+from flask import jsonify
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -388,4 +389,169 @@ def reset_password(token):
             return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
+
+@app.route('/agendar_turno', methods=['GET', 'POST'])
+@login_required
+@requiere_rol('Admin', 'Doctor', 'Enfermero')
+def agendar_turno():
+    datos_paciente = None
+    error = None
+    confirmado = False
+
+    if request.method == 'POST':
+        dni = request.form.get('dni').strip()
+        fecha = request.form.get('fecha')
+        motivo = request.form.get('motivo', '').strip()
+
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM pacientes WHERE dni = %s", (dni,))
+        paciente = cursor.fetchone()
+
+        if not paciente:
+            error = "❌ No se encontró un paciente con ese DNI."
+        else:
+            datos_paciente = paciente
+            if fecha and motivo:
+                cursor.execute("""
+                    INSERT INTO turnos (paciente_id, usuario_id, fecha, motivo)
+                    VALUES (%s, %s, %s, %s)
+                """, (paciente['id'], current_user.id, fecha, motivo))
+                conn.commit()
+                confirmado = True
+        cursor.close()
+        conn.close()
+
+    return render_template('agendar_turno.html', datos_paciente=datos_paciente, error=error, confirmado=confirmado)
+
+@app.route('/turnos')
+@login_required
+@requiere_rol('Admin','Doctor', 'Enfermero')
+def listar_turnos():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT t.id, t.fecha, t.motivo, p.nombre, p.dni
+        FROM turnos t
+        JOIN pacientes p ON t.paciente_id = p.id
+        WHERE t.usuario_id = %s
+        ORDER BY t.fecha ASC
+    """, (current_user.id,))
+    turnos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template("listado_turnos.html", turnos=turnos)
+
+@app.route('/turno/editar/<int:turno_id>', methods=['GET', 'POST'])
+@login_required
+def editar_turno(turno_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        fecha = request.form['fecha']
+        motivo = request.form['motivo']
+        cursor.execute(
+            "UPDATE turnos SET fecha = %s, motivo = %s WHERE id = %s",
+            (fecha, motivo, turno_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash("✅ Turno actualizado.")
+        return redirect(url_for('turnos_filtro'))
+
+    # Trae también datos del paciente
+    cursor.execute("""
+        SELECT t.*, p.nombre, p.dni
+        FROM turnos t
+        JOIN pacientes p ON t.paciente_id = p.id
+        WHERE t.id = %s
+    """, (turno_id,))
+    turno = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return render_template("editar_turno.html", turno=turno)
+
+@app.route('/turno/cancelar/<int:turno_id>', methods=['POST'])
+@login_required
+def cancelar_turno(turno_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM turnos WHERE id = %s", (turno_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    flash("❌ Turno cancelado.")
+    return redirect(url_for('turnos_filtro'))
+
+@app.route('/turnos_filtro', methods=['GET'])
+@login_required
+@requiere_rol('Admin','Doctor', 'Enfermero')
+def turnos_filtro():
+    filtro_dni = request.args.get('dni')
+    desde = request.args.get('desde')
+    hasta = request.args.get('hasta')
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+        SELECT t.id, t.fecha, t.motivo, p.nombre, p.dni
+        FROM turnos t
+        JOIN pacientes p ON t.paciente_id = p.id
+        WHERE t.usuario_id = %s
+    """
+    params = [current_user.id]
+
+    if filtro_dni:
+        query += " AND p.dni = %s"
+        params.append(filtro_dni)
+    if desde:
+        query += " AND t.fecha >= %s"
+        params.append(desde)
+    if hasta:
+        query += " AND t.fecha <= %s"
+        params.append(hasta)
+
+    query += " ORDER BY t.fecha ASC"
+    cursor.execute(query, tuple(params))
+    turnos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template("listado_turnos.html", turnos=turnos, filtro_dni=filtro_dni or '', desde=desde or '', hasta=hasta or '')
+
+@app.route('/api/turnos')
+@login_required
+@requiere_rol('Admin','Doctor', 'Enfermero')
+def api_turnos():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT t.id, t.fecha, t.motivo, p.nombre, p.dni
+        FROM turnos t
+        JOIN pacientes p ON t.paciente_id = p.id
+        WHERE t.usuario_id = %s
+    """, (current_user.id,))
+    turnos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    eventos = [{
+        "id": t["id"],
+        "title": f"{t['nombre']} ({t['dni']})",
+        "start": t["fecha"].isoformat(),
+        "description": t["motivo"]
+    } for t in turnos]
+
+    return jsonify(eventos)
+
+@app.route('/calendario')
+@login_required
+@requiere_rol('Doctor', 'Enfermero')
+def calendario_turnos():
+    return render_template("calendario_turnos.html")
 

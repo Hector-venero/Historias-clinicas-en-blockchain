@@ -1,0 +1,37 @@
+{% extends 'layout.html' %}
+{% block title %}Turnos Agendados{% endblock %}
+{% block content %}
+
+<h2>Turnos Agendados</h2>
+
+<form method="get" class="mb-4">
+  <label>DNI Paciente:</label>
+  <input type="text" name="dni" value="{{ filtro_dni }}">
+  <label>Desde:</label>
+  <input type="date" name="desde" value="{{ desde }}">
+  <label>Hasta:</label>
+  <input type="date" name="hasta" value="{{ hasta }}">
+  <button type="submit">Filtrar</button>
+</form>
+
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr>
+    <th>Paciente</th>
+    <th>Fecha</th>
+    <th>Motivo</th>
+    <th>Acciones</th>
+  </tr>
+  {% for t in turnos %}
+    <tr>
+      <td>{{ t.nombre }} ({{ t.dni }})</td>
+      <td>{{ t.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+      <td>{{ t.motivo or 'Sin especificar' }}</td>
+      <td>
+        <a href="{{ url_for('editar_turno', turno_id=t.id) }}">Editar</a> |
+        <a href="{{ url_for('cancelar_turno', turno_id=t.id) }}" onclick="return confirm('¿Confirmar cancelación?')">Cancelar</a>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

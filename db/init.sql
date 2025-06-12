@@ -45,6 +45,17 @@ CREATE TABLE historias (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
+CREATE TABLE turnos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    paciente_id INT NOT NULL,
+    usuario_id INT NOT NULL,  -- doctor o enfermero que agenda
+    fecha DATETIME NOT NULL,
+    motivo VARCHAR(255),
+    notificado BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+);
+
 -- Índices útiles para búsqueda
 CREATE INDEX idx_pacientes_dni ON pacientes (dni);
 CREATE INDEX idx_pacientes_nombre ON pacientes (nombre);
