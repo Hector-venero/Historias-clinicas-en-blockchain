@@ -22,6 +22,7 @@ CREATE TABLE usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     rol ENUM('Admin', 'Doctor', 'Enfermero', 'Tecnico') NOT NULL
 );
@@ -50,8 +51,10 @@ CREATE INDEX idx_pacientes_nombre ON pacientes (nombre);
 CREATE INDEX idx_pacientes_apellido ON pacientes (apellido);
 
 -- Usuario administrador inicial (solo si no existe)
-INSERT INTO usuarios (nombre, username, password_hash, rol)
-SELECT 'Admin', 'admin', 'scrypt:32768:8:1$A63POXMoCCciR0XF$f0aa4fe424e8bbd4653bfb8cd9a3d511b705c147f1ab669765cb62800253d866a756ce4d2d060fac95b127a02a1dc79316cd50ec7ebc37a60bd4901b6d039252', 'Admin'
+INSERT INTO usuarios (nombre, username, email, password_hash, rol)
+SELECT 'Admin', 'admin', 'admin@ejemplo.com',
+'scrypt:32768:8:1$A63POXMoCCciR0XF$f0aa4fe424e8bbd4653bfb8cd9a3d511b705c147f1ab669765cb62800253d866a756ce4d2d060fac95b127a02a1dc79316cd50ec7ebc37a60bd4901b6d039252',
+'Admin'
 WHERE NOT EXISTS (
     SELECT 1 FROM usuarios WHERE username = 'admin'
 );

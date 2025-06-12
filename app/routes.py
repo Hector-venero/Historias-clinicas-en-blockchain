@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, send_file
+from flask import render_template, request, redirect, url_for, flash, send_file, session
 from datetime import datetime
 from . import app
 from .database import get_connection
@@ -13,6 +13,10 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from .utils.permisos import requiere_rol
 from flask import session
+import secrets
+from flask_mail import Mail, Message
+from werkzeug.security import generate_password_hash
+from . import mail
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -77,30 +81,35 @@ def crear_usuario():
     if request.method == 'POST':
         nombre = request.form['nombre'].strip()
         username = request.form['username'].strip()
+        email = request.form['email'].strip()  # Nuevo campo
         password = request.form['password']
-        rol = request.form.get('rol')  # Nuevo campo requerido
+        rol = request.form.get('rol')
 
-        # Validar campos vacíos
-        if not nombre or not username or not password or not rol:
+        # Validación
+        if not nombre or not username or not email or not password or not rol:
             error = "Todos los campos son obligatorios."
         elif len(password) < 4:
             error = "La contraseña debe tener al menos 4 caracteres."
         elif rol not in ['Admin', 'Doctor', 'Enfermero', 'Tecnico']:
             error = "Rol inválido."
+        elif '@' not in email:
+            error = "El correo electrónico no es válido."
         else:
             conn = get_connection()
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT id FROM usuarios WHERE username = %s", (username,))
+
+            # Verificar duplicados
+            cursor.execute("SELECT id FROM usuarios WHERE username = %s OR email = %s", (username, email))
             existente = cursor.fetchone()
 
             if existente:
-                error = f"El nombre de usuario '{username}' ya existe."
+                error = "Ya existe un usuario con ese nombre de usuario o email."
             else:
                 password_hash = generate_password_hash(password)
                 cursor.execute("""
-                    INSERT INTO usuarios (nombre, username, password_hash, rol)
-                    VALUES (%s, %s, %s, %s)
-                """, (nombre, username, password_hash, rol))
+                    INSERT INTO usuarios (nombre, username, email, password_hash, rol)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (nombre, username, email, password_hash, rol))
                 conn.commit()
                 mensaje = f"✅ Usuario '{username}' creado con éxito como {rol}."
 
@@ -108,6 +117,7 @@ def crear_usuario():
             conn.close()
 
     return render_template('crear_usuario.html', mensaje=mensaje, error=error)
+
 
 @app.route('/paciente/<int:paciente_id>')
 @login_required
@@ -317,3 +327,65 @@ def exportar_pdf(id):
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
+@app.route('/recover', methods=['GET', 'POST'])
+def recover():
+    if request.method == 'POST':
+        email = request.form['email'].strip().lower()
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM usuarios WHERE email = %s", (email,))
+        usuario = cursor.fetchone()
+        conn.close()
+
+        if usuario:
+            token = secrets.token_urlsafe(32)
+            session['reset_token'] = token
+            session['reset_user'] = usuario['username']
+            reset_url = url_for('reset_password', token=token, _external=True)
+
+            msg = Message("Recuperación de contraseña", recipients=[email])
+            msg.body = (
+                f"Hola,\n\n"
+                f"Recibimos una solicitud para restablecer la contraseña del usuario asociado al correo {email}.\n\n"
+                f"Si fuiste vos, hacé clic en el siguiente enlace para cambiar tu contraseña. "
+                f"Este enlace estará disponible por 1 hora desde el momento en que se generó:\n\n"
+                f"{reset_url}\n\n"
+                f"Si no realizaste esta solicitud, podés ignorar este mensaje. "
+                f"No se realizará ningún cambio si no accedés al enlace.\n\n"
+                f"Gracias,\n"
+                f"Sistema de Historias Clínicas"
+            )
+            mail.send(msg)
+
+            flash("📧 Email enviado con el enlace para restablecer contraseña.")
+        else:
+            flash("❌ No se encontró un usuario con ese email.")
+    return render_template('recover_password.html')
+
+
+@app.route('/reset/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if session.get('reset_token') != token:
+        return "Token inválido o expirado.", 403
+
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        if new_password != confirm_password:
+            flash("❌ Las contraseñas no coinciden.")
+        else:
+            username = session['reset_user']
+            conn = get_connection()
+            cursor = conn.cursor()
+            hash_pw = generate_password_hash(new_password)
+            cursor.execute("UPDATE usuarios SET password_hash = %s WHERE username = %s", (hash_pw, username))
+            conn.commit()
+            conn.close()
+            session.pop('reset_token', None)
+            session.pop('reset_user', None)
+            flash("✅ Contraseña actualizada con éxito.")
+            return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
+
