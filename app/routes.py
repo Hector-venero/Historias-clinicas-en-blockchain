@@ -11,7 +11,8 @@ from werkzeug.security import generate_password_hash
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-
+from .utils.permisos import requiere_rol
+from flask import session
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -22,6 +23,7 @@ def login():
 
         if user and user.verificar_password(password):
             login_user(user)
+            session.permanent = True
             return redirect(url_for('index'))
         return render_template('login.html', error='Credenciales incorrectas')
 
@@ -67,6 +69,7 @@ def resultados():
 
 @app.route('/crear_usuario', methods=['GET', 'POST'])
 @login_required
+@requiere_rol('Admin', 'Doctor')
 def crear_usuario():
     mensaje = None
     error = None
@@ -75,12 +78,15 @@ def crear_usuario():
         nombre = request.form['nombre'].strip()
         username = request.form['username'].strip()
         password = request.form['password']
+        rol = request.form.get('rol')  # Nuevo campo requerido
 
         # Validar campos vacíos
-        if not nombre or not username or not password:
+        if not nombre or not username or not password or not rol:
             error = "Todos los campos son obligatorios."
         elif len(password) < 4:
             error = "La contraseña debe tener al menos 4 caracteres."
+        elif rol not in ['Admin', 'Doctor', 'Enfermero', 'Tecnico']:
+            error = "Rol inválido."
         else:
             conn = get_connection()
             cursor = conn.cursor(dictionary=True)
@@ -92,17 +98,16 @@ def crear_usuario():
             else:
                 password_hash = generate_password_hash(password)
                 cursor.execute("""
-                    INSERT INTO usuarios (nombre, username, password_hash)
-                    VALUES (%s, %s, %s)
-                """, (nombre, username, password_hash))
+                    INSERT INTO usuarios (nombre, username, password_hash, rol)
+                    VALUES (%s, %s, %s, %s)
+                """, (nombre, username, password_hash, rol))
                 conn.commit()
-                mensaje = f"✅ Usuario '{username}' creado con éxito."
+                mensaje = f"✅ Usuario '{username}' creado con éxito como {rol}."
 
             cursor.close()
             conn.close()
 
     return render_template('crear_usuario.html', mensaje=mensaje, error=error)
-
 
 @app.route('/paciente/<int:paciente_id>')
 @login_required
@@ -127,6 +132,7 @@ def ver_paciente(paciente_id):
 
 @app.route('/guardar', methods=['POST'])
 @login_required
+@requiere_rol('Admin', 'Doctor', 'Enfermero', 'Tecnico')
 def guardar():
     print("📍 Entrando a guardar()")
     dni = request.form['dni']
@@ -184,6 +190,8 @@ def guardar():
     return redirect(url_for('index'))
 
 @app.route('/historia/<int:id>')
+@login_required
+@requiere_rol('Admin', 'Doctor', 'Enfermero', 'Tecnico')
 def mostrar_historia(id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -194,9 +202,18 @@ def mostrar_historia(id):
     if not historia:
         return "Historia no encontrada", 404
 
+    # Restricción para Enfermero
+    if current_user.rol == 'Enfermero':
+        fecha_limite = datetime.now() - timedelta(days=30)
+        if historia['fecha'] < fecha_limite.strftime('%Y-%m-%d %H:%M:%S'):
+            abort(403)
+
+    # Restricción para Técnico (solo puede ver lo que creó)
+    if current_user.rol == 'Tecnico' and historia['usuario_id'] != current_user.id:
+        abort(403)
+
     cursor.execute("SELECT * FROM pacientes WHERE id = %s", (historia['paciente_id'],))
     paciente = cursor.fetchone()
-
     conn.close()
 
     historia['valida'] = validar_integridad(
@@ -205,7 +222,6 @@ def mostrar_historia(id):
     )
 
     return render_template("historia.html", historia=historia, paciente=paciente, es_valida=historia['valida'])
-
 
 @app.route('/historias/<dni>')
 @login_required
